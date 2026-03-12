@@ -1,71 +1,41 @@
-<div dir="rtl" align="right">
+<div align="center">
 
-# 🧠 الدليل الموسوعي لتقنية RAG (Retrieval-Augmented Generation)
-> **المرجع الشامل لبناء أنظمة LLM موثوقة وقابلة للإنتاج.**
+# 🧠 The Definitive Guide to RAG
+**Retrieval-Augmented Generation: From Concepts to Production**
 
----
-
-## 📑 جدول المحتويات
-1. [لماذا نحتاج الـ RAG؟](#لماذا-نحتاج-الـ-rag)
-2. [المعمارية الهندسية (Architecture)](#المعمارية-الهندسية-architecture)
-3. [تقنيات التقطيع (Smart Chunking)](#تقنيات-التقطيع-smart-chunking)
-4. [البحث الدلالي (Vector Search & Embeddings)](#البحث-الدلالي-vector-search--embeddings)
-5. [التقنيات المتقدمة (Advanced RAG)](#التقنيات-المتقدمة-advanced-rag)
-6. [الوكلاء الأذكياء (Agentic RAG)](#الوكلاء-الأذكياء-agentic-rag)
-7. [مثلث التقييم (RAG Triad)](#مثلث-التقييم-rag-triad)
+</div>
 
 ---
 
-## لماذا نحتاج الـ RAG؟
-النماذج مثل GPT تعاني من **انقطاع المعرفة** و **الهلوسة**. الـ RAG يمنحها "ذاكرة خارجية" للبحث فيها قبل الإجابة.
+## 📑 Table of Contents
 
-![مفهوم RAG التوضيحي](assets/13.gif)
+This domain is structured as an end-to-end masterclass on building robust, hallucination-free AI systems.
 
----
+1. [**01. The LLM Dilemma: Why RAG Exists**](./01-introduction.md)
+   *Understanding the fundamental limitations of Large Language Models and why RAG is the enterprise solution.*
 
-## المعمارية الهندسية (Architecture)
-ينقسم النظام إلى مسارين:
-1. **الفهرسة (Indexing):** تحويل البيانات لمتجهات.
-2. **الاسترجاع (Retrieval):** البحث عن المعلومة وقت السؤال.
+2. [**02. Core Architecture Blueprint**](./02-architecture.md)
+   *The evolution from Naive RAG setups to Dual-Pipeline Production Architecture.*
 
-![مسار العمل الشامل](assets/workflow.webp)
+3. [**03. Data Ingestion & Smart Chunking**](./03-chunking.md)
+   *Preparing the knowledge base: Recursive, Semantic, and Structure-aware document parsing.*
 
----
+4. [**04. Embeddings & Vector Mathematics**](./04-embeddings.md)
+   *The math of meaning: Cosine Similarity, embedding models, and vector stores.*
 
-## تقنيات التقطيع (Smart Chunking)
-تقسيم النصوص بذكاء لضمان عدم ضياع السياق.
+5. [**05. Advanced Retrieval Strategies**](./05-retrieval.md)
+   *Moving beyond simple search: Hybrid Retrieval, HyDE, and Cross-Encoder Re-ranking.*
 
-![تجهيز البيانات](assets/3.gif)
+6. [**06. The Reasoning Engine: Agentic RAG**](./06-agentic-rag.md)
+   *Building autonomous agents that plan, retrieve, and self-reflect.*
 
----
+7. [**07. System Evaluation (LLMOps)**](./07-evaluation.md)
+   *Measuring success with the RAG Triad: Faithfulness, Answer Relevance, and Context Precision.*
 
-## البحث الدلالي (Vector Search & Embeddings)
-تحويل الكلمات لأرقام (Vectors) لفهم "المعنى" وليس مجرد "الحروف".
-
-![البحث بالمتجهات](assets/6.gif)
-
----
-
-## التقنيات المتقدمة (Advanced RAG)
-* **Hybrid Search:** دمج البحث بالمعنى مع الكلمات المفتاحية.
-* **Re-ranking:** تصفية النتائج لرفع الدقة من 60% إلى 95%.
-
-![تقنيات متقدمة](assets/10.webp)
+8. [**08. RAG vs. Fine-Tuning & Future Horizons**](./08-comparison.md)
+   *A strategic comparison and a look into GraphRAG and Multi-Modal retrieval.*
 
 ---
-
-## الوكلاء الأذكياء (Agentic RAG)
-حيث يقرر الـ AI بنفسه متى وأين يبحث.
-
-![الوكلاء الأذكياء](assets/4.webp)
-
----
-
-## مثلث التقييم (RAG Triad)
-1. **Faithfulness:** صدق الإجابة.
-2. **Answer Relevance:** صلة الإجابة بالسؤال.
-3. **Context Precision:** جودة المعلومات المسترجعة.
-
-![التقييم](assets/1704504627159.png)
-
+<div align="center">
+<i>Navigate through the articles using the 'Next' links at the bottom of each page. Start with <a href="./01-introduction.md">Part 1</a>.</i>
 </div>
