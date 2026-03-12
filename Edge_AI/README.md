@@ -1,52 +1,38 @@
-<div dir="rtl" align="right">
+<div align="center">
 
-# 📱 الدليل الشامل لتقنية Edge AI و Small Language Models (SLMs)
-> **مستقبل الذكاء الاصطناعي على الأجهزة المحدودة الإمكانيات.**
+# 📱 The Definitive Guide to Edge AI & TinyML
+**Moving Intelligence from the Cloud to the Device in 2026**
 
----
-
-## 📑 جدول المحتويات
-1. [ما هو الـ Edge AI؟](#ما-هو-الـ-edge-ai)
-2. [لماذا ننتقل من السحاب (Cloud) إلى الحافة (Edge)؟](#لماذا-ننتقل-من-السحاب-cloud-إلى-الحافة-edge)
-3. [النماذج اللغوية الصغيرة (Small Language Models)](#النماذج-اللغوية-الصغيرة-small-language-models)
-4. [تقنيات تحسين النماذج (Optimization Techniques)](#تقنيات-تحسين-النماذج-optimization-techniques)
-5. [الأجهزة والمنصات (Hardware & Frameworks)](#الأجهزة-والمنصات-hardware--frameworks)
+</div>
 
 ---
 
-## ما هو الـ Edge AI؟
-هو تشغيل نماذج الذكاء الاصطناعي مباشرة على الجهاز (هاتف، كاميرا، حساسات) دون الحاجة لإرسال البيانات إلى خوادم بعيدة.
+## 📑 Table of Contents
+
+This track covers the architectures, hardware, and methodologies required to deploy powerful **Small Language Models (SLMs)** and neural networks onto highly unconstrained devices like smartphones, IoT sensors, and autonomous vehicles.
+
+1. [**01. Introduction: What is Edge AI?**](./01-introduction.md)
+   *Understanding the shift from centralized cloud servers to decentralized smart devices.*
+
+2. [**02. The 4 Pillars: Cloud vs. Edge**](./02-cloud-vs-edge.md)
+   *Why decentralize? Latency, Privacy, Cost, and Reliability.*
+
+3. [**03. Small Language Models (SLMs)**](./03-small-models.md)
+   *Reviewing the powerhouses: Phi-3, Gemma, Llama-Tiny, and their MMLU benchmarks.*
+
+4. [**04. On-Device Model Optimization**](./04-optimization.md)
+   *Compression techniques: Quantization (INT4), Pruning, and Knowledge Distillation.*
+
+5. [**05. Hardware Accelerators & Frameworks**](./05-hardware.md)
+   *The silicon battleground: NPU, TPU, GPU vs CPU, and frameworks like TFLite/ONNX.*
+
+6. [**06. TinyML: Inference on Microcontrollers**](./06-tinyml.md)
+   *The pipeline for deploying neural networks on milli-watt devices.*
+
+7. [**07. Security & Real-World Use Cases**](./07-security-use-cases.md)
+   *Secure enclaves, Differential Privacy, Healthcare, and Autonomous Systems.*
 
 ---
-
-## لماذا ننتقل إلى الحافة (Edge)؟
-1. **السرعة (Latency):** استجابة فورية دون انتظار الإنترنت.
-2. **الخصوصية (Privacy):** بياناتك لا تغادر جهازك أبداً.
-3. **التكلفة (Cost):** توفير فواتير استهلاك الـ API والـ Cloud.
-4. **العمل بدون إنترنت (Reliability).**
-
----
-
-## النماذج اللغوية الصغيرة (Small Language Models)
-بدلاً من GPT-4 الذي يحتوي على تريليونات الـ Parameters، نستخدم نماذج مصغرة مثل:
-* **Phi-3 (Microsoft):** نموذج قوي جداً بحجم صغير.
-* **Gemma (Google):** مفتوح المصدر ومخصص للأجهزة المتوسطة.
-* **Llama Tiny (Meta):** مثالي للهواتف الذكية.
-
----
-
-## تقنيات تحسين النماذج (Optimization Techniques)
-لكي يعمل النموذج على الهاتف، يجب "ضغطه" عبر:
-1. **Quantization (التكميم):** تقليل دقة الأرقام (من FP32 إلى INT8) لتقليل حجم النموذج بنسبة 70% دون فقدان كبير في الذكاء.
-2. **Pruning (التقليم):** حذف الروابط العصبية الضعيفة التي لا تؤثر على الإجابة.
-3. **Knowledge Distillation:** تعليم نموذج صغير من نموذج كبير (Teacher-Student).
-
----
-
-## الأجهزة والمنصات (Hardware & Frameworks)
-* **Frameworks:** TensorFlow Lite, ONNX Runtime, OpenVINO.
-* **Hardware:** NVIDIA Jetson, Coral TPU, Apple Neural Engine (ANE).
-
----
-*تم إعداد هذا القسم ليكون مرجعاً تقنياً لمهندسي الأنظمة المدمجة والذكاء الاصطناعي.*
+<div align="center">
+<i>Navigate through the articles using the 'Next' links at the bottom of each page. Start with <a href="./01-introduction.md">Part 1</a>.</i>
 </div>
