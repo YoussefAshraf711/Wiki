@@ -1,65 +1,131 @@
-# 04. Embeddings & Vector Mathematics 📐
-> **The science of converting human language into multi-dimensional mathematical coordinates.**
+<div align="center">
+
+# 🧮 Part 4: Embeddings & Vector Search
+
+**Turning words into numbers that capture meaning — and searching them at the speed of light.**
+
+`⏱ 10 min read` · `📊 Intermediate` · `📚 RAG Masterclass 4/8`
+
+</div>
 
 ---
 
-## What is a Vector Embedding?
+## 📌 Quick Summary
 
-Computers do not understand English, Arabic, or Python; they only understand numbers. To search through millions of documents instantly based on *meaning* (not just matching keywords), we must translate text into an array of floating-point numbers. This is an **Embedding**.
-
-An embedding model reads a chunk of text and plots it as a point (a vector) in a massive, high-dimensional space (often ranging from 384 to over 3,000 dimensions).
-
-### The Math of Meaning
-In this mathematical space, **semantic similarity is physical distance**. If two sentences mean the same thing, their vectors will be clustered very close together, even if they share zero vocabulary.
-
-* Example 1: `[0.45, -0.12, 0.88...]` -> "The puppy chased the ball."
-* Example 2: `[0.44, -0.11, 0.87...]` -> "A small dog ran after the toy."
-* Example 3: `[-0.99, 0.55, -0.22...]` -> "Quarterly financial margins dropped."
-
-Examples 1 and 2 will be physically adjacent in the vector space.
-
-## Searching the Matrix: Cosine Similarity
-
-When a user asks a question, we embed their query into a vector using the *exact same model* we used to embed our documents. 
-
-Now, we just need to find the vectors in our database that are closest to the user's query vector. We achieve this using a geometric formula called **Cosine Similarity**.
-
-$$ \text{Cosine Similarity} = \frac{\mathbf{A} \cdot \mathbf{B}}{\|\mathbf{A}\| \|\mathbf{B}\|} $$
-
-Cosine similarity measures the **angle** between two vectors, completely ignoring their magnitude (length). 
-- If the angle is $0^{\circ}$ (Cosine = 1), the sentences are identical in meaning.
-- If the angle is $90^{\circ}$ (Cosine = 0), they are unrelated.
-- If the angle is $180^{\circ}$ (Cosine = -1), they are exact opposites.
-
-### Visualizing Vector Search
-
-<p align="center">
-  <img src="assets/vector-search.gif" width="80%" alt="Vector Space Search" />
-  <br>
-  <em>Figure 1: The user's query "diving" into the vector database to retrieve the closest semantic neighbors.</em>
-</p>
-
-## Choosing the Right Tools
-
-### 1. The Embedding Model
-You don't use GPT-4 to create embeddings; you use specialized models. You evaluate these models using the **MTEB Benchmark** (Massive Text Embedding Benchmark) on HuggingFace.
-
-*   **For High Accuracy:** `text-embedding-3-small` (OpenAI), `BGE-m3` (BAAI).
-*   **For On-Premise/Local Speed:** `all-MiniLM-L6-v2` (Very fast, runs on CPU).
-*   **For Multilingual (Arabic/English):** Cohere Embed v3 or specialized multilingual BGE models.
-
-### 2. The Vector Store (Database)
-A Vector Store is a specialized database optimized for calculating billions of cosine similarities in milliseconds.
-
-*   **SaaS/Managed Hosted:** Pinecone, Weaviate. Great for zero-maintenance scaling.
-*   **Open Source/Local:** ChromaDB, Qdrant, Milvus. Perfect for privacy and local hacking.
-*   **The Enterprise Hybrid:** **PostgreSQL with the `pgvector` extension.** This is becoming the industry standard because it allows you to store your vector embeddings directly alongside your strict relational data (user IDs, timestamps), enabling flawless hybrid filtering.
+> **Embeddings** convert text into dense numerical vectors where semantically similar texts are close together in vector space. This enables **semantic search**: instead of matching keywords, you match *meaning*. A query about "automobile repair" will find documents about "car maintenance" even if they share zero words.
 
 ---
 
-> [!WARNING]
-> **Model Lock-In**  
-> If you embed 1 million documents using OpenAI's `text-embedding-ada-002`, you **cannot** later switch to BAAI's `BGE-large` model for queries. The dimensions and the mathematical "language" are completely different. To switch models, you must re-embed your entire database from scratch. Choose your embedding model wisely.
+## 🗺️ The Map Analogy
+
+> 🗺️ Imagine a world map where instead of countries, you plot **every sentence ever written**. Sentences about cooking cluster near Italy and France. Sentences about technology cluster near Silicon Valley. Sentences about football cluster near Europe and South America.
+>
+> When a user asks "How do I make pasta?", their question lands right in the Italian cooking cluster — and the nearest neighboring sentences are exactly the recipes they need.
+>
+> **That's vector search.** Texts with similar meanings are located near each other in a mathematical "meaning map."
 
 ---
-*Navigation: [← Previous: Smart Chunking](03-chunking.md) | [📑 Table of Contents](README.md) | [Next: Advanced Retrieval Strategies →](05-retrieval.md)*
+
+## 🔢 What is an Embedding?
+
+An embedding is a fixed-length list of numbers (a vector) that captures the semantic meaning of a piece of text. The vector is typically 384 to 3072 dimensions long.
+
+```
+"The cat sat on the mat"
+    ↓ Embedding Model
+[0.023, -0.156, 0.891, 0.445, ..., -0.034]  ← 1536 numbers
+```
+
+### The Key Property:
+Texts with **similar meanings** produce **similar vectors** (close together in space). Texts with **different meanings** produce **different vectors** (far apart).
+
+<div align="center">
+
+![Vector Similarity Search — Texts about similar topics cluster together. A user query lands near the most relevant cluster, and nearest-neighbor search finds the top results.](./assets/rag-vector-space.png)
+
+</div>
+
+### Word-Level vs Sentence-Level:
+- **Word embeddings** (Word2Vec, GloVe): One vector per word. "bank" always has the same vector regardless of context. Outdated for RAG.
+- **Sentence embeddings** (OpenAI, Cohere, Sentence Transformers): One vector for the entire passage. Context-aware — "bank" near "river" ≠ "bank" near "money". This is what RAG uses.
+
+---
+
+## 🔍 How Similarity Search Works
+
+Once your chunks are embedded and stored, searching is a mathematical operation:
+
+### Cosine Similarity (The Standard):
+
+```
+Similarity = cos(θ) = (A · B) / (||A|| × ||B||)
+
+Where:
+  A · B = sum of element-wise products
+  ||A|| = magnitude (length) of vector A
+```
+
+| Cosine Score | Meaning | Example |
+|:--|:--|:--|
+| **1.0** | Identical meaning | "Happy dog" vs "Joyful canine" |
+| **0.7-0.9** | Very similar | "Python programming" vs "Coding in Python" |
+| **0.3-0.6** | Somewhat related | "Python programming" vs "Snake species" |
+| **0.0** | Unrelated | "Python programming" vs "French cooking" |
+
+---
+
+## 📊 Embedding Model Comparison (2026)
+
+| Model | Dimensions | Quality | Cost | Speed |
+|:--|:--|:--|:--|:--|
+| **OpenAI text-embedding-3-small** | 1536 | ⭐⭐⭐⭐ | $0.02/1M tokens | Fast |
+| **OpenAI text-embedding-3-large** | 3072 | ⭐⭐⭐⭐⭐ | $0.13/1M tokens | Medium |
+| **Cohere embed-v3** | 1024 | ⭐⭐⭐⭐ | $0.10/1M tokens | Fast |
+| **Sentence Transformers (all-MiniLM)** | 384 | ⭐⭐⭐ | Free (local) | Very fast |
+| **BGE-large** | 1024 | ⭐⭐⭐⭐ | Free (local) | Medium |
+| **Voyage-3** | 1024 | ⭐⭐⭐⭐⭐ | $0.06/1M tokens | Fast |
+
+> [!TIP]
+> **For prototyping:** Use `all-MiniLM-L6-v2` (free, local, fast). **For production:** Use `text-embedding-3-small` (excellent quality-to-cost ratio). Only use `text-embedding-3-large` if you need maximum accuracy on nuanced content.
+
+---
+
+## ⚡ Approximate Nearest Neighbor (ANN) Search
+
+Exact nearest-neighbor search compares your query against every single vector in the database. With 10 million vectors, this takes too long.
+
+**ANN algorithms** trade a tiny amount of accuracy for massive speed gains:
+
+| Algorithm | Used By | How It Works |
+|:--|:--|:--|
+| **HNSW** | Pinecone, Weaviate, Qdrant | Builds a multi-layer graph. Starts searching from the top layer (coarse) and narrows down to the bottom layer (precise). |
+| **IVF** | Faiss | Divides vectors into clusters. Only searches the nearest clusters instead of the entire database. |
+| **ScaNN** | Google | Quantizes vectors into compressed representations for ultra-fast comparison. |
+
+In practice, HNSW achieves **99.5% recall** (finds 99.5% of the true nearest neighbors) while being **100x faster** than brute-force search.
+
+---
+
+## ⚠️ Critical Rule: Never Mix Embedding Models
+
+> [!CAUTION]
+> The vectors produced by different embedding models are **completely incompatible**. If you index your documents with `text-embedding-3-small` and search with `all-MiniLM`, the results will be garbage — even though both produce vectors.
+>
+> **Always use the SAME embedding model for indexing AND querying.** If you change models, you must re-embed your entire knowledge base.
+
+---
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 3: Chunking](03-chunking.md) |
+| 📑 **Table of Contents** | [RAG Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 5: Retrieval Strategies →](05-retrieval.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>
