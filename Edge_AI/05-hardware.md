@@ -1,60 +1,103 @@
-# 05. Hardware Accelerators & Frameworks ⚙️
-> **CPU vs GPU vs NPU vs TPU: The battle for silicon dominance at the Edge.**
+<div align="center">
+
+# 🔧 Part 5: Hardware & Inference Frameworks
+
+**The silicon and software that make edge AI possible — from NVIDIA Jetson to Apple Neural Engine.**
+
+`⏱ 8 min read` · `📊 Intermediate` · `📱 Edge AI Masterclass 5/8`
+
+</div>
 
 ---
 
-## The Hardware Evolution
+## 📌 Quick Summary
 
-Historically, code ran on the **CPU** (Central Processing Unit). A CPU is like a brilliant scientist who can solve *any* complex problem, but operates sequentially (one step at a time).
+> Edge AI runs on specialized hardware (NPUs, GPUs, TPUs) using optimized inference frameworks (ONNX Runtime, TensorFlow Lite, llama.cpp). The hardware determines your power envelope and compute ceiling. The framework determines how efficiently you use that hardware.
 
-Neural networks are massive matrices requiring millions of simultaneous, simple multiplication operations. 
+---
 
-We shifted to the **GPU** (Graphics Processing Unit). A GPU is like an army of 10,000 average workers. They can't do complex calculus, but they can multiply 10,000 basic numbers at the exact same millisecond (Parallel Processing). 
+## 🖥️ The Hardware Landscape
 
-But GPUs consume massive amounts of electricity. A desktop GPU draws 300 Watts. You cannot put that in a battery-powered security camera.
+### Edge AI Accelerators Compared:
 
-## Enter the NPU / TPU (Dedicated AI Silicon)
+| Hardware | Type | Performance | Power | Price | Best For |
+|:--|:--|:--|:--|:--|:--|
+| **Apple Neural Engine** | NPU (in M-series/A-series) | 38 TOPS (M4) | ~5W | Built into Apple devices | iPhones, iPads, Macs |
+| **NVIDIA Jetson Orin Nano** | GPU module | 40 TOPS | 15W | ~$250 | Robots, drones, IoT |
+| **Google Coral Edge TPU** | TPU accelerator | 4 TOPS | 2W | ~$60 | Low-power IoT |
+| **Qualcomm Hexagon NPU** | NPU (in Snapdragon) | 45 TOPS (8 Gen 3) | ~5W | Built into Android phones | Smartphones |
+| **Intel Movidius** | VPU | 1 TOPS | <1W | ~$80 | Ultra-low power vision |
+| **Raspberry Pi 5 + Hailo-8** | AI HAT module | 13 TOPS | 5W | ~$100 | Hobbyist, education |
 
-To run neural networks on edge devices running on 5-Watt batteries, the industry created **ASICs** (Application-Specific Integrated Circuits) strictly designed for AI operations.
+### Key Metric: TOPS (Tera Operations Per Second)
+```
+1 TOPS = 1 trillion operations per second
 
-*   **NPU (Neural Processing Unit):** Built natively into modern phone chips (Apple's Neural Engine, Snapdragon's Hexagon NPU). They consume almost zero battery while calculating INT8 matrices incredibly fast.
-*   **TPU (Tensor Processing Unit):** Google's proprietary architecture. The Edge TPU (Coral) can perform 4 Trillion Operations Per Second (TOPS) while consuming only 2 Watts.
-
-### Visualizing the Inference Stack
-
-```mermaid
-graph TD
-    subgraph "The Edge AI Silicon Stack (2026)"
-        A[The AI Model file e.g., INT4 .tflite] --> B{The Framework Engine}
-        
-        B -->|If General Code| C[CPU]
-        B -->|If High Power/FP32| D[GPU]
-        B -->|If Low Power/INT8| E[NPU / Edge TPU]
-    end
-    
-    style E fill:#38bdf8,stroke:#0f172a,stroke-width:2px,color:#0f172a
+Context:
+  Running a 1B parameter model inference ≈ 2 TOPS
+  Running a 7B parameter model inference ≈ 14 TOPS
+  Real-time video object detection     ≈ 5 TOPS
 ```
 
 ---
 
-## The Software Frameworks
+## 🛠️ Inference Frameworks
 
-You cannot just take a Python script running `import torch` and put it on a microcontroller. Standard PyTorch is bloated. 
+| Framework | Runs On | Language | Best For |
+|:--|:--|:--|:--|
+| **llama.cpp / Ollama** | CPU, Apple Metal, CUDA | C/C++ | LLMs on CPU (laptops, servers) |
+| **ONNX Runtime** | CPU, GPU, NPU, TPU | Python/C++ | Cross-platform model deployment |
+| **TensorFlow Lite** | Mobile, IoT | Python/Java/C++ | Android/iOS apps, microcontrollers |
+| **Core ML** | Apple devices only | Swift/Python | iOS, iPadOS, macOS apps |
+| **NVIDIA TensorRT** | NVIDIA GPUs only | C++/Python | Maximum GPU inference speed |
+| **MediaPipe** | Mobile, Web, Desktop | Python/JS | Pre-built vision/NLP tasks |
+| **MLC LLM** | Phone, Laptop, Web | Python/C++ | LLMs on any device via compilation |
 
-To run models on the Edge, you must compile your model using specialized, ultra-lightweight C++ runtime frameworks.
+### Decision Guide:
 
-| Framework | Best Used For | Target Hardware |
-| :--- | :--- | :--- |
-| **llama.cpp** | The reigning champion of running local LLMs on consumer laptops and phones. Uses pure C/C++ without bulky dependencies. | Apple M-Series (Metal), Android, Windows Desktop (CPU/GPU). |
-| **TensorFlow Lite (TFLite)** | Classical Computer Vision and Audio detection. Powers millions of legacy Android apps. | Edge TPUs, Android NPUs, Raspberry Pi. |
-| **ONNX Runtime** | The universal translator. You export models from PyTorch into ONNX format for maximum cross-platform compatibility. | Cross-platform (Windows, Linux, Web browsers). |
-| **OpenVINO** | Intel's hyper-optimized inference engine. Pushes x86 processors to their absolute limits limit. | Intel Core CPUs, Intel Integrated Graphics. |
+```
+"Running LLMs on a laptop (CPU)?"
+  → llama.cpp / Ollama
 
-## The GGUF Format
+"Deploying to mobile apps?"
+  → TensorFlow Lite (Android) or Core ML (iOS)
 
-If you are deploying LLMs locally in 2026, you are likely using files ending in `.gguf`. 
+"Need cross-platform consistency?"
+  → ONNX Runtime
 
-**GGUF (GPT-Generated Unified Format)** is a file format created by the `llama.cpp` team. It packs the entire neural network structure, the quantized weights (INT4/INT8), and the prompt configuration into ONE single, easily distributable file. You can literally drag and drop a 4GB `.gguf` file onto an offline iPhone and start chatting with it.
+"Have NVIDIA GPU and need max speed?"  
+  → TensorRT
+
+"Building a quick prototype?"
+  → Ollama (simplest setup)
+```
 
 ---
-*Navigation: [← Previous: Model Optimization](04-optimization.md) | [📑 Table of Contents](README.md) | [Next: TinyML & Deployment Pipeline →](06-tinyml.md)*
+
+## ⚡ Speed Benchmark: Llama 3.2 3B on Different Hardware
+
+| Hardware | Framework | Tokens/Second | Setup Difficulty |
+|:--|:--|:--|:--|
+| M2 Pro MacBook (CPU) | Ollama | ~25 tok/s | ⭐ Trivial |
+| M2 Pro MacBook (GPU) | Ollama (Metal) | ~45 tok/s | ⭐ Trivial |
+| NVIDIA RTX 4090 | llama.cpp (CUDA) | ~90 tok/s | ⭐⭐ Easy |
+| NVIDIA Jetson Orin Nano | llama.cpp | ~15 tok/s | ⭐⭐⭐ Moderate |
+| Pixel 8 Pro (Tensor G3) | MediaPipe LLM | ~12 tok/s | ⭐⭐ Easy |
+| Raspberry Pi 5 | llama.cpp | ~3 tok/s | ⭐⭐ Easy |
+
+---
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 4: Optimization](04-optimization.md) |
+| 📑 **Table of Contents** | [Edge AI Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 6: TinyML & Microcontrollers →](06-tinyml.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>

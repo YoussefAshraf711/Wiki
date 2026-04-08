@@ -1,73 +1,134 @@
-# 04. On-Device Model Optimization 📉
-> **How to violently compress a 16GB neural network into a 2GB file without lobotomizing the AI.**
+<div align="center">
+
+# ⚡ Part 4: Model Optimization — Quantization, Pruning & Distillation
+
+**Making models smaller, faster, and cheaper without destroying their accuracy.**
+
+`⏱ 10 min read` · `📊 Advanced` · `📱 Edge AI Masterclass 4/8`
+
+</div>
 
 ---
 
-## The Weight Problem
+## 📌 Quick Summary
 
-Neural networks are essentially giant matrices of numbers called **Weights**. 
-During training, models are typically saved in **FP32** (32-bit Floating Point). This means every single parameter (weight) takes up 4 bytes of RAM.
-
-A 7 Billion parameter model in FP32 requires:
-`7,000,000,000 * 4 bytes = 28 GB of RAM`
-
-Your phone does not have 28GB of free RAM just to run a chatbot. To deploy models to the Edge, we must use aggressive compression techniques.
+> A 7B parameter model in full precision (FP32) requires 28 GB of RAM. After **quantization** to 4-bit, it requires only 3.5 GB — an 8× reduction — with <5% accuracy loss. Combined with **pruning** (removing unnecessary connections) and **distillation** (learning from a larger model), these techniques make edge deployment practical.
 
 ---
 
-## 1. Quantization (The Ultimate Optimizer)
+## 🗜️ Technique 1: Quantization — Less Precision, More Speed
 
-Quantization mathematically rounds the highly precise FP32 numbers down to lower-precision formats like **FP16** (16-bit), **INT8** (8-bit Integer), or even **INT4** (4-bit Integer).
+Quantization reduces the numerical precision of model weights from 32-bit floating point to smaller formats:
 
-### The Math of Loss
-- **FP32:** `0.84912648` (Requires 4 bytes)
-- **INT8:** `0.85` (Requires 1 byte)
-
-By rounding the numbers, we instantly shrink the physical file size and memory footprint of the model.
-- An 8B model in FP32 = 32GB RAM.
-- An 8B model in INT4 = **4.5GB RAM**. (Easily fits on an iPhone 15 Pro).
-
-```mermaid
-graph LR
-    A[Original Model FP32] -->|Training| B[High Precision 32GB]
-    B -->|Post-Training Quantization| C{Quantizer}
-    C -->|INT8 Conversion| D[INT8 Model 8GB]
-    C -->|INT4 Conversion| E[INT4 Model 4GB]
-    C -->|INT2 (Extreme)| F[INT2 Model 2GB]
-    
-    style B fill:#f87171,color:#fff
-    style D fill:#fbbf24,color:#0f172a
-    style E fill:#34d399,color:#0f172a
-    style F fill:#ef4444,color:#fff
+```
+FP32:  3.14159265358979...   ← 32 bits per number → Maximum precision
+FP16:  3.14159...            ← 16 bits per number → Half the memory
+INT8:  3                     ← 8 bits per number  → Quarter the memory  
+INT4:  3                     ← 4 bits per number  → 1/8 the memory
 ```
 
-### The "Lobotomization" Curve
-Quantization is not free. When you delete decimal places, the model forgets complex nuances.
-Down to INT8, the model retains 99% of its original logic. Down to INT4, it becomes slightly stupider but still highly capable. Below INT4 (like INT3 or INT2), the model's logic completely collapses and it outputs gibberish.
+### Impact on a Real 7B Model:
+
+| Format | Bits Per Weight | Model Size | RAM Required | Quality Loss |
+|:--|:--|:--|:--|:--|
+| FP32 | 32 | 28 GB | 32 GB | None (baseline) |
+| FP16 | 16 | 14 GB | 16 GB | ~0% |
+| INT8 | 8 | 7 GB | 8 GB | 1-2% |
+| INT4 (GPTQ) | 4 | 3.5 GB | 4 GB | 3-5% |
+| INT4 (GGUF) | 4 | 3.5 GB | 4 GB | 2-4% |
+
+> [!TIP]
+> **The sweet spot is INT4 GGUF (Q4_K_M).** This is what Ollama, llama.cpp, and most edge deployments use. You lose 2-4% quality but gain 8× memory reduction and 3-4× speed improvement. For most tasks, users can't tell the difference.
+
+### Quantization Formats Explained:
+
+| Format | Tool | Best For |
+|:--|:--|:--|
+| **GGUF** | llama.cpp, Ollama | CPU inference (laptops, servers without GPU) |
+| **GPTQ** | AutoGPTQ | GPU inference (NVIDIA cards) |
+| **AWQ** | AutoAWQ | GPU inference (faster than GPTQ) |
+| **bitsandbytes** | HuggingFace | Training + inference on GPU |
 
 ---
 
-## 2. Model Pruning (Cutting the Fat)
+## ✂️ Technique 2: Pruning — Cutting the Dead Weight
 
-A neural network has billions of connections (synapses). After training, researchers discover that millions of these connections have a mathematical weight of `0.000001` — meaning they functionally do nothing to help the model think.
+Neural networks have massive redundancy. Many connections (weights) contribute almost nothing to the output. Pruning removes them:
 
-**Pruning** is the act of aggressively sniping these weak connections and deleting them from the model entirely.
+```
+Before Pruning:           After Pruning (50%):
+● ─── ● ─── ●            ● ─── ● ─── ●
+│ ╲ │ ╱ │ ╲ │            │     │     │
+● ─── ● ─── ●            ●     ●     ●
+│ ╲ │ ╱ │ ╲ │                  │
+● ─── ● ─── ●            ●     ●     ●
 
-*   **Unstructured Pruning:** Randomly deleting weak individual connections worldwide. (Hard for hardware to actually speed up).
-*   **Structured Pruning:** Deleting entire blocks, rows, or "neurons" that are underperforming. (Highly efficient for NPUs).
+All connections active    50% connections removed
+100% compute needed       ~50% compute needed
+```
+
+### Types of Pruning:
+
+| Type | What's Removed | Speedup | Accuracy Impact |
+|:--|:--|:--|:--|
+| **Unstructured** | Individual weights (random sparsity) | 🟡 Moderate (needs sparse hardware) | Low |
+| **Structured** | Entire neurons, layers, or attention heads | 🟢 High (works on any hardware) | Medium |
+| **Semi-structured (2:4)** | 2 out of every 4 weights (NVIDIA pattern) | 🟢 High (hardware-accelerated) | Low |
 
 ---
 
-## 3. Knowledge Distillation (The Teacher and the Student)
+## 🧑‍🏫 Technique 3: Knowledge Distillation
 
-How did Microsoft make the tiny 3.8B Phi-3 model so smart? They used Knowledge Distillation.
+We covered this briefly in Part 3. In detail:
 
-1.  Take a massive, incredibly smart **Teacher Model** (like GPT-4).
-2.  Take an empty, tiny **Student Model** (3 Billion parameters).
-3.  Ask the Teacher to solve millions of complex math and logic puzzles, and explicitly write out its exact step-by-step reasoning.
-4.  Train the tiny Student model *exclusively* on the Teacher's perfect reasoning outputs.
+1. **Teacher model** (e.g., GPT-4) generates outputs for a training dataset
+2. **Student model** (e.g., 3B parameter model) learns to mimic the teacher's outputs
+3. The student captures the teacher's "knowledge" in a much smaller package
 
-Instead of the Student reading the messy internet and learning bad habits, it is fed a pure, concentrated diet of "textbook logic" from a genius. The Student learns to mimic the Teacher's high-level reasoning despite having 50x fewer parameters.
+### Why It Works:
+The teacher's outputs contain richer information than the original training labels. Instead of learning "this email is spam" (a hard 0/1 label), the student learns "this email has 0.92 probability of spam, 0.05 promotional, 0.03 legitimate" — the probability distribution carries more learning signal.
 
 ---
-*Navigation: [← Previous: Small Language Models](03-small-models.md) | [📑 Table of Contents](README.md) | [Next: Hardware Accelerators & Frameworks →](05-hardware.md)*
+
+## 📊 Combining All Three
+
+In practice, all three techniques are used together:
+
+```
+Full Model (7B, FP32, 28 GB)
+          │
+          ▼
+  ┌───────────────┐
+  │ Distillation   │ → Create 3B student model (12 GB)
+  └───────┬────────┘
+          │
+  ┌───────▼────────┐
+  │ Pruning (30%)   │ → Remove redundant weights (8.4 GB)
+  └───────┬────────┘
+          │
+  ┌───────▼────────┐
+  │ Quantization    │ → INT4 compression (2.1 GB)
+  └───────┬────────┘
+          │
+          ▼
+  Optimized Model (3B, INT4, 2.1 GB)
+  → Runs on a smartphone 📱
+  → 85%+ original quality retained
+```
+
+---
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 3: Small Models](03-small-models.md) |
+| 📑 **Table of Contents** | [Edge AI Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 5: Hardware & Frameworks →](05-hardware.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>
