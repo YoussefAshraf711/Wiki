@@ -1,87 +1,153 @@
-# 02. The Core Loop: ReAct (Reason + Act) 🔄
-> **The foundational agent pattern: interleaving thought traces with tool actions.**
+<div align="center">
+
+# 🔄 Part 2: The Core Loop — ReAct (Reason + Act)
+
+**The foundational pattern every AI agent is built on: thinking out loud before every action.**
+
+`⏱ 10 min read` · `📊 Intermediate` · `🤖 Agentic AI Masterclass 2/7`
+
+</div>
 
 ---
 
-## What is ReAct?
+## 📌 Quick Summary
 
-**ReAct** (Reasoning + Acting) is the foundational design pattern for building AI agents. Published by Yao et al. (2022), it revolutionized how LLMs interact with external systems by interleaving **Thought** (internal reasoning) with **Action** (external tool use) and **Observation** (reading the result).
+> **ReAct** is the design pattern where an LLM interleaves **Thought** (internal reasoning) with **Action** (tool calls) and **Observation** (reading tool results). It was a breakthrough because it forces the model to explain *why* it's calling a tool before calling it — making agents transparent, debuggable, and grounded in real data.
 
-Before ReAct, an LLM would either reason silently in its head (Chain-of-Thought) OR call a tool (Action-only). Neither approach alone was reliable. ReAct combined them, allowing the model to "think out loud" about *why* it's calling a tool and *what* it expects to learn.
+---
 
-## The ReAct Loop in Detail
+## 🔬 The Detective Analogy
 
-```mermaid
-graph TD
-    Query([User: "What is the population of the capital of Egypt?"]) --> T1
-    
-    T1["Thought 1: I need to find the capital of Egypt first."] --> A1
-    A1["Action 1: search('capital of Egypt')"] --> O1
-    O1["Observation 1: 'The capital of Egypt is Cairo.'"] --> T2
-    
-    T2["Thought 2: Now I need Cairo's population."] --> A2
-    A2["Action 2: search('population of Cairo 2026')"] --> O2
-    O2["Observation 2: 'Cairo's population is approximately 22 million.'"] --> T3
-    
-    T3["Thought 3: I have all the information. The answer is 22 million."] --> Final
-    Final([Final Answer: "The capital of Egypt is Cairo, with a population of ~22 million."])
-    
-    style T1 fill:#38BDF8,color:#0F172A
-    style T2 fill:#38BDF8,color:#0F172A
-    style T3 fill:#38BDF8,color:#0F172A
-    style A1 fill:#22c55e,color:#fff
-    style A2 fill:#22c55e,color:#fff
-    style O1 fill:#f59e0b,color:#0F172A
-    style O2 fill:#f59e0b,color:#0F172A
-```
+> 🔍 **Think of a detective solving a case:**
+>
+> A bad detective jumps to conclusions: *"It was the butler!"* (No evidence, no reasoning.)
+>
+> A good detective **thinks → acts → observes** in a loop:
+> 1. 🧠 *"The victim was poisoned. I need to check who had access to the kitchen."* (THINK)
+> 2. 🔍 *Searches the security camera footage.* (ACT)
+> 3. 👁️ *"Footage shows the maid entering the kitchen at 3 PM."* (OBSERVE)
+> 4. 🧠 *"Interesting, but I also need to check the butler's alibi."* (THINK)
+> 5. 🔍 *Interviews the butler.* (ACT)
+> 6. 👁️ *"Butler was at the hardware store — receipt confirms."* (OBSERVE)
+> 7. 🧠 *"The maid had access, the butler didn't. Case closed."* (FINAL ANSWER)
+>
+> ReAct agents work exactly like this — they **reason before every action**.
 
-### The Three Phases:
+---
 
-| Phase | Color | What Happens |
-| :--- | :--- | :--- |
-| **Thought** | 🔵 Blue | The LLM reasons about what it knows and what it still needs. This is purely internal — no tool is called. |
-| **Action** | 🟢 Green | The LLM invokes an external tool (search, calculator, API call) with specific arguments. |
-| **Observation** | 🟡 Yellow | The result from the tool is fed back into the LLM's context. The LLM reads it and decides what to do next. |
+## 🎬 A Complete ReAct Example
 
-## Why ReAct Works
+Let's trace a real agent solving: *"What is the population of the capital of Egypt?"*
 
-Without thoughts, the model blindly calls tools without understanding why. Without actions, the model hallucinates answers from memory.
+<div align="center">
 
-ReAct gives us:
-1. **Transparency:** We can see exactly *why* the agent made each decision by reading its thought trace (critical for debugging).
-2. **Grounding:** The agent's answers are derived from real tool outputs, not hallucinated parametric memory.
-3. **Adaptability:** If a tool returns an error or unexpected result, the agent can reason about the failure and try a different approach.
+![The Agent Loop — THINK, ACT, OBSERVE cycle](./assets/agent-react-loop.png)
 
-## The Prompt Template
+</div>
 
-Under the hood, ReAct is implemented as a carefully structured prompt:
+### The Full Trace:
+
+---
+
+> 🧠 **Thought 1:** The user asked about "the capital of Egypt." I don't know the current population with certainty. Let me first confirm which city is the capital, then look up its population.
+
+> ⚡ **Action 1:** `search("capital of Egypt")`
+
+> 👁️ **Observation 1:** "The capital of Egypt is Cairo (القاهرة), established in 969 AD."
+
+---
+
+> 🧠 **Thought 2:** Good — Cairo is the capital. Now I need Cairo's current population. Let me search for that specifically.
+
+> ⚡ **Action 2:** `search("population of Cairo 2026")`
+
+> 👁️ **Observation 2:** "Greater Cairo's metropolitan population is approximately 22.5 million as of 2026, making it the largest city in Africa and the Arab world."
+
+---
+
+> 🧠 **Thought 3:** I now have both pieces of information. The capital is Cairo, and its population is ~22.5 million. I can answer the user's question.
+
+> ✅ **Final Answer:** "The capital of Egypt is **Cairo**, with a metropolitan population of approximately **22.5 million** — the largest city in both Africa and the Arab world."
+
+---
+
+### Why This Works So Well:
+
+| Phase | Color | Purpose |
+|:--|:--|:--|
+| 🧠 **Thought** | Blue | The LLM **explains its reasoning** — what it knows, what it doesn't, and what it plans to do next. This is internal only — no tool is called. |
+| ⚡ **Action** | Green | The LLM **calls a specific tool** with specific arguments. This is the only step that interacts with the outside world. |
+| 👁️ **Observation** | Amber | The **tool result** is fed back into the LLM's context. The LLM reads it and decides what to do next. |
+
+---
+
+## 🧑‍💻 The Prompt Template Under the Hood
+
+ReAct isn't magic — it's a carefully structured system prompt:
 
 ```
 You are a helpful assistant with access to the following tools:
-- search(query): Search the web for information
-- calculator(expression): Evaluate a math expression
 
-To use a tool, respond with:
-Thought: [your reasoning]
-Action: [tool_name(arguments)]
+1. search(query: str) - Search the web for current information
+2. calculator(expression: str) - Evaluate mathematical expressions
+3. get_weather(city: str) - Get current weather data
 
-After receiving the tool's output, you will see:
-Observation: [result]
+When answering the user, follow this EXACT format:
 
-Repeat until you have enough information, then respond with:
-Thought: I now have the answer.
-Final Answer: [your response]
+Thought: [Explain your reasoning — what do you know and what do you need?]
+Action: tool_name(arguments)
+
+After receiving the tool's output, you'll see:
+Observation: [The tool's result]
+
+Continue this Thought → Action → Observation loop until you have 
+enough information. Then respond with:
+
+Thought: I now have everything I need.
+Final Answer: [Your complete response to the user]
 ```
 
-## Limitations of Pure ReAct
-
-ReAct is powerful but has notable weaknesses in production:
-
-| Limitation | Impact | Solution |
-| :--- | :--- | :--- |
-| **No self-correction** | If the LLM misinterprets a tool result, it won't catch its own error. | Add a **Reflection** step (see next article). |
-| **No upfront planning** | ReAct is greedy — it decides one step at a time without planning ahead. | Use **Plan-and-Execute** for complex tasks. |
-| **Expensive on complex tasks** | Each thought-action-observation cycle costs tokens. A 10-step task can consume 50K+ tokens. | Use cheaper models for execution steps. |
+The LLM is trained to follow this format. The agent runtime parses the output, extracts the tool call, executes it, and injects the observation back into the context.
 
 ---
-*Navigation: [← Previous: What is an Agent?](01-introduction.md) | [📑 Table of Contents](README.md) | [Next: Advanced Patterns →](03-advanced-patterns.md)*
+
+## ✅ Why ReAct is Powerful
+
+1. **Transparency:** You can see *exactly why* the agent made each decision by reading the thought trace. This is critical for debugging — when the agent fails, you can pinpoint which thought led to the wrong action.
+
+2. **Grounding:** The agent's answers are derived from real-time tool outputs, not hallucinated from training data. If the LLM's parametric memory says Cairo has 18 million people, but the search tool returns 22.5 million, the agent uses the tool's data.
+
+3. **Adaptability:** If a tool returns an error or unexpected result, the agent can reason about the failure and try a different approach — because it *thinks* before every action.
+
+---
+
+## ❌ Limitations of Pure ReAct
+
+ReAct is the foundation, but it has real weaknesses in production:
+
+| Limitation | What Goes Wrong | Solution (next articles) |
+|:--|:--|:--|
+| **No self-correction** | If the LLM misinterprets a result, it doesn't catch its own error | Add **Reflection** (Part 3) |
+| **Greedy planning** | ReAct decides one step at a time with no foresight — it might go down a rabbit hole | Use **Plan-and-Execute** (Part 3) |
+| **Expensive** | Each think-act-observe cycle costs tokens. A 10-step task might consume 50K+ tokens | Use cheaper models for execution steps |
+| **No parallelism** | Steps are strictly sequential — can't search 3 things simultaneously | Framework-level optimization |
+
+> [!TIP]
+> **The 80/20 rule:** ReAct alone handles ~80% of production agent tasks perfectly well. Only add Reflection or Plan-and-Execute when you observe specific failure modes like the ones above.
+
+---
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 1: What is an Agent?](01-introduction.md) |
+| 📑 **Table of Contents** | [Agentic AI Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 3: Advanced Patterns →](03-advanced-patterns.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>

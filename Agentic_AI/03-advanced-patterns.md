@@ -1,104 +1,172 @@
-# 03. Advanced Patterns: Reflection & Plan-and-Execute 🧠
-> **Boosting agent accuracy by 30% through self-critique and structured task decomposition.**
+<div align="center">
+
+# 🧠 Part 3: Advanced Patterns — Reflection & Plan-and-Execute
+
+**Two patterns that boost agent accuracy by 30%+ through self-critique and structured task decomposition.**
+
+`⏱ 12 min read` · `📊 Advanced` · `🤖 Agentic AI Masterclass 3/7`
+
+</div>
 
 ---
 
-## Pattern 1: Reflection (Self-Critique)
+## 📌 Quick Summary
 
-Basic ReAct agents accept every tool result at face value and rush to a final answer. They never pause to ask: *"Wait, does this answer actually make sense?"*
+> ReAct agents rush forward without looking back. **Reflection** adds a "quality check" step where the agent critiques its own output before finalizing. **Plan-and-Execute** separates thinking from doing — a smart planner creates the roadmap, then a cheap executor follows it step by step. In production, these patterns are combined for maximum reliability.
 
-**Reflection** adds a critical evaluation step. After the agent generates a draft answer or completes a set of actions, a "Critic" evaluates the work and provides feedback. If the feedback is negative, the agent iterates.
+---
 
-### Architecture
+## 🔎 Pattern 1: Reflection (Self-Critique)
 
-```mermaid
-graph TD
-    Task([Complex Task]) --> Generator[Generator Agent]
-    Generator -->|Draft Output| Critic{Critic Agent}
-    Critic -->|"Feedback: Missing sources. Redo."| Generator
-    Critic -->|"Feedback: Looks good. ✅"| Final([Verified Output])
-    
-    style Generator fill:#38BDF8,color:#0F172A
-    style Critic fill:#f59e0b,color:#0F172A
+### The Problem with Pure ReAct
+
+A basic ReAct agent is like a student who turns in their paper without proofreading. They might have made mistakes — wrong data, missing analysis, logical gaps — but they never look back. The answer goes straight to the user, errors and all.
+
+**Reflection** fixes this by adding a **Critic** step.
+
+### How It Works
+
+<div align="center">
+
+![The Reflection Pattern — The Generator produces draft output, the Critic evaluates it, and either approves it or sends it back for improvement.](./assets/agent-reflection-pattern.png)
+
+</div>
+
+### The Two Flavors:
+
+| Flavor | How It Works | Pros | Cons |
+|:--|:--|:--|:--|
+| **Self-Reflection** | The *same LLM* is prompted twice — first to generate, then to critique its own work | Cheap (1 model) | Can be blind to its own biases |
+| **External Critique** | A *different LLM* or a set of rules evaluates the output | Catches more errors | More expensive (2 models) |
+
+### Real-World Example: Code Generation
+
+Here's what Reflection looks like in practice for a coding agent:
+
+> **Step 1 — Generator:**
+> ```python
+> def fibonacci(n):
+>     if n <= 1:
+>         return n
+>     return fibonacci(n-1) + fibonacci(n-2)
+> ```
+>
+> **Step 2 — Critic:**
+> ❌ *"This implementation has O(2^n) time complexity. For n > 40, it will be unusably slow. Use dynamic programming or memoization."*
+>
+> **Step 3 — Generator (Retry):**
+> ```python
+> from functools import lru_cache
+>
+> @lru_cache(maxsize=None)
+> def fibonacci(n):
+>     if n <= 1:
+>         return n
+>     return fibonacci(n-1) + fibonacci(n-2)
+> ```
+>
+> **Step 4 — Critic:**
+> ✅ *"Good — O(n) time, O(n) space with memoization. Approved."*
+
+Without Reflection, the user would have received the slow O(2^n) version. Reflection caught and fixed the performance bug automatically.
+
+---
+
+## 📋 Pattern 2: Plan-and-Execute
+
+### The Problem with Greedy Decision-Making
+
+ReAct is **greedy** — it decides one step at a time with no foresight. For complex, multi-step tasks, this is dangerous:
+
+Imagine asking an agent: *"Compare Q1 vs Q2 sales, identify the top 3 products, and create a chart."*
+
+A greedy ReAct agent might:
+1. Query Q1 sales... wait for result
+2. Realize it needs to also query Q2... query again
+3. Realize it chose the wrong metrics... re-query
+4. Start building a chart... realize the data format is wrong
+5. ...10 expensive steps later, finally produce a mediocre result
+
+### The Solution: Plan First, Execute Second
+
+<div align="center">
+
+![Plan-and-Execute — An expensive Planner LLM creates a structured plan, then a cheap Executor LLM follows the steps one by one. If a step fails, the Planner can re-plan.](./assets/agent-plan-execute.png)
+
+</div>
+
+### How Plan-and-Execute Works:
+
+1. **Planning Phase (expensive model):** A powerful LLM (like GPT-4 or Claude) receives the user's complex goal and decomposes it into a numbered, structured plan of sub-tasks
+2. **Execution Phase (cheap model):** A smaller, cheaper model (like GPT-4o-mini) handles each sub-task one by one, using tools as needed
+3. **Re-planning (if needed):** If Step 3 fails, the Planner is called again to create a revised plan from Step 3 onwards — no need to restart from scratch
+
+### Example Plan Output:
+
+```
+User Goal: "Compare Q1 vs Q2 sales and create a chart"
+
+📋 PLAN:
+  Step 1: Query database for Q1 sales totals by product
+  Step 2: Query database for Q2 sales totals by product
+  Step 3: Calculate percentage change for each product
+  Step 4: Identify top 3 products by absolute growth
+  Step 5: Generate a bar chart comparing Q1 vs Q2 for the top 3
 ```
 
-### Two Flavors of Reflection:
+### Why This is Superior:
 
-1. **Self-Reflection:** The *same* LLM is prompted twice — first to generate, then to critique its own output. Cheaper, but the model may be blind to its own biases.
-2. **External Reflection:** A *second*, separate LLM (or a set of heuristic rules) evaluates the first model's output. More expensive, but catches errors the generator cannot see.
-
-### When to Use:
-- **Code Generation:** The agent writes code, then a critic checks it for bugs, performance issues, and security vulnerabilities before submitting.
-- **Research Summarization:** The agent summarizes a long document, then a critic verifies that no key facts were omitted.
+| Advantage | Explanation |
+|:--|:--|
+| **Cost-Efficient** | The expensive Planner LLM is called once. The cheap Executor handles the repetitive tool calls. |
+| **Predictable** | The full plan is visible before execution. A human can review and approve it. |
+| **Recoverable** | If Step 3 fails (e.g., division by zero), the Planner can re-plan from Step 3 without restarting the entire task (**Plan Repair**). |
+| **Transparent** | You can see the agent's explicit plan upfront, not just watch it stumble forward. |
 
 ---
 
-## Pattern 2: Plan-and-Execute
+## 🔗 Combining Patterns: The Production Recipe
 
-ReAct is "greedy" — it decides what to do one step at a time. For complex, multi-step tasks, this is dangerous. The agent might go down a rabbit hole for 10 expensive steps before realizing it started with the wrong approach.
+In production, patterns are rarely used in isolation. The most robust agents combine them:
 
-**Plan-and-Execute** separates the architecture into two distinct modules:
-
-1. **The Planner:** A powerful LLM (like GPT-4) that receives the user's complex goal and outputs a structured, numbered plan of sub-tasks *before any execution begins*.
-2. **The Executor:** A cheaper, faster model (or tool-calling agent) that executes each sub-task one by one.
-
-### Architecture
-
-```mermaid
-graph TD
-    Goal([User Goal: Compare Q1 vs Q2 sales and make a chart]) --> Planner
-    
-    subgraph "Planning Phase (Expensive LLM)"
-        Planner[Planner LLM] -->|Structured Plan| Plan["
-        1. Query DB for Q1 sales
-        2. Query DB for Q2 sales  
-        3. Calculate difference
-        4. Generate chart
-        "]
-    end
-    
-    subgraph "Execution Phase (Cheap LLM + Tools)"
-        Plan --> E1[Execute Step 1] --> E2[Execute Step 2]
-        E2 --> E3[Execute Step 3] --> E4[Execute Step 4]
-    end
-    
-    E4 --> Result([Final Output: Chart + Analysis])
-    
-    style Planner fill:#0F172A,color:#fff
-    style E1 fill:#22c55e,color:#fff
-    style E2 fill:#22c55e,color:#fff
-    style E3 fill:#22c55e,color:#fff
-    style E4 fill:#22c55e,color:#fff
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│   Complex Goal ──→ [PLAN-AND-EXECUTE creates steps]      │
+│                         │                                │
+│                    Each step ──→ [REACT loop executes]    │
+│                                      │                   │
+│                           Output ──→ [REFLECTION checks] │
+│                                      │                   │
+│                              ✅ Approved → Next step     │
+│                              ❌ Rejected → Re-execute    │
+│                                                          │
+│   All steps done ──→ Final Output to User                │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Why it's Superior for Complex Tasks:
-- **Cost Efficient:** The expensive Planner LLM is called only once. The cheap Executor handles the repetitive work.
-- **Predictable:** The full plan is visible *before* execution, allowing human review or modification.
-- **Recoverable:** If Step 3 fails, the Planner can be invoked again to re-plan from Step 3 onwards without restarting from scratch (**Plan Repair**).
-
----
-
-## Pattern 3: Combining Patterns
-
-In production, patterns are rarely used in isolation. The most robust architectures combine them:
-
-```mermaid
-graph LR
-    A[Plan-and-Execute] -->|Each step uses| B[ReAct Loop]
-    B -->|Output checked by| C[Reflection]
-    
-    style A fill:#0F172A,color:#fff
-    style B fill:#38BDF8,color:#0F172A
-    style C fill:#f59e0b,color:#0F172A
-```
-
-*Example:* A financial analysis agent uses **Plan-and-Execute** to decompose the user's request into 5 sub-tasks. Each sub-task is executed by a **ReAct** loop that calls database tools. Before the final report is returned, a **Reflection** critic checks the math for errors.
-
----
+**Example:** A financial analysis agent:
+1. **Plan-and-Execute** decomposes the request into 5 sub-tasks
+2. Each sub-task uses a **ReAct** loop to call database tools
+3. Before the final report is returned, a **Reflection** critic checks the math for errors
 
 > [!TIP]
-> **The 80/20 Rule of Patterns**  
-> For the vast majority of production use cases, **ReAct + Reflection** is sufficient. Only introduce Plan-and-Execute when tasks genuinely involve 5+ sequential steps with tool dependencies between them. Over-engineering the pattern adds latency without benefit for simple tasks.
+> **The 80/20 rule:** For most production use cases, **ReAct + Reflection** is sufficient and fast. Only introduce Plan-and-Execute when tasks involve **5+ sequential steps** with dependencies between them. Over-engineering adds latency.
 
 ---
-*Navigation: [← Previous: ReAct](02-react.md) | [📑 Table of Contents](README.md) | [Next: Tool Use & Function Calling →](04-tool-use.md)*
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 2: ReAct](02-react.md) |
+| 📑 **Table of Contents** | [Agentic AI Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 4: Tool Use & Function Calling →](04-tool-use.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>

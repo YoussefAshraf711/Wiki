@@ -1,93 +1,174 @@
-# 06. Frameworks: LangGraph vs CrewAI ⚙️
-> **The two dominant frameworks for building agents in 2026, compared head-to-head.**
+<div align="center">
+
+# ⚙️ Part 6: Frameworks — LangGraph vs CrewAI
+
+**The two dominant frameworks for building agents in 2026, compared head-to-head with practical guidance on when to use each.**
+
+`⏱ 10 min read` · `📊 Intermediate` · `🤖 Agentic AI Masterclass 6/7`
+
+</div>
 
 ---
 
-## Why Use a Framework?
+## 📌 Quick Summary
 
-Building raw agent loops in plain Python is possible but painful. You must manually handle:
-- State persistence across tool calls.
-- Retry logic on tool failures.
-- Infinite loop detection (an agent stuck calling the same tool forever).
-- Human-in-the-loop checkpoints.
-- Streaming and observability.
+> Building agents from scratch is painful — you'd have to handle state, retries, loops, and human approvals manually. **LangGraph** (stateful graph/state machine) gives you fine-grained control for production. **CrewAI** (role-based teams) gives you rapid prototyping with a human-team metaphor. Start with CrewAI to validate ideas, migrate to LangGraph for production.
 
-Frameworks solve all of this out-of-the-box, letting you focus on the business logic.
+---
 
-## LangGraph: The State Machine Approach
+## 🤔 Why Use a Framework at All?
 
-**LangGraph** (by LangChain) models your agent as a **directed graph** (a state machine). Nodes are functions (an LLM call, a tool call, a decision function). Edges define the flow between them.
+If you build a raw agent loop in plain Python, you must manually handle these:
+
+| Problem | What Goes Wrong Without a Framework |
+|:--|:--|
+| **State Persistence** | Agent crashes mid-task → all progress lost |
+| **Infinite Loops** | Agent keeps calling the same tool forever → burns $100 in tokens |
+| **Error Recovery** | Tool returns 500 error → agent panics and halts |
+| **Human Approval** | No way to pause for user confirmation before destructive actions |
+| **Debugging** | No way to replay or inspect what the agent did at Step 5 |
+
+Frameworks solve all of this, letting you focus on the actual business logic.
+
+---
+
+## 🔷 LangGraph: The State Machine Approach
+
+**LangGraph** (by LangChain) models your agent as a **directed graph**. Nodes are functions. Edges are connections. State flows through the graph.
 
 ### Core Concepts:
-- **State:** A TypedDict/Pydantic model that flows through the graph. Every node reads and writes to this shared state.
-- **Nodes:** Python functions that perform work (call an LLM, run a tool, transform data).
-- **Edges:** Connections between nodes. Can be static (always go A → B) or conditional (if X, go to B; if Y, go to C).
-- **Checkpointing:** LangGraph can automatically save state after every node execution. If the process crashes, you restart from the last checkpoint, not from scratch.
 
-### Architecture Visualization:
+| Concept | What It Is | Example |
+|:--|:--|:--|
+| **State** | A typed dictionary that flows through the graph | `{"messages": [...], "plan": [...], "result": None}` |
+| **Nodes** | Python functions that do work | Call LLM, run a tool, transform data |
+| **Edges** | Connections between nodes (static or conditional) | "If tool call needed → go to Tools node. Else → go to End." |
+| **Checkpointing** | Auto-saves state after every node | If process crashes, restart from last checkpoint |
+
+### Visualization:
 
 ```mermaid
 graph TD
-    Start([Start]) --> Agent[Agent Node: LLM Decides]
-    Agent -->|Tool Call| Tools[Tool Node: Execute Function]
-    Agent -->|No Tool Needed| End([End: Return Answer])
+    Start([User Message]) --> Agent
+    Agent[Agent Node: LLM Decides] -->|Tool needed| Tools[Tool Node: Execute]
+    Agent -->|Done| End([Return Answer])
     Tools --> Agent
-    
-    style Agent fill:#0F172A,color:#fff
-    style Tools fill:#22c55e,color:#fff
 ```
 
-### Best For:
-- Complex, production workflows requiring fine-grained control.
-- Workflows with conditional branching, loops, and error recovery.
-- Systems where you need **time-travel debugging** (replay execution from any checkpoint).
-
-## CrewAI: The Role-Based Team Approach
-
-**CrewAI** takes a fundamentally different philosophy. Instead of graphs and nodes, you define **Agents** (with roles, goals, and backstories) and **Tasks** (with descriptions and expected outputs). CrewAI then orchestrates them using predefined process types.
-
-### Core Concepts:
-- **Agent:** A persona with a specific role (e.g., "Senior Data Analyst"), goal, backstory, and allowed tools.
-- **Task:** A specific job to be done, assigned to a specific agent.
-- **Crew:** A team of agents working together on a set of tasks.
-- **Process:** The orchestration strategy — `sequential` (one-by-one) or `hierarchical` (manager delegates).
-
-### Best For:
-- Rapid prototyping and experimentation.
-- Workflows where role definition is natural (research → write → review).
-- Teams that prefer a high-level, declarative API over low-level graph construction.
-
-## Head-to-Head Comparison
-
-| Feature | LangGraph | CrewAI |
-| :--- | :--- | :--- |
-| **Paradigm** | Stateful directed graph (state machine) | Role-based agent teams |
-| **Control Level** | 🔧 Very fine-grained (node/edge level) | 🎯 High-level (role/task level) |
-| **Learning Curve** | Steeper (graph theory concepts) | Gentler (human-team analogy) |
-| **State Management** | Explicit, typed state with checkpointing | Implicit, managed by framework |
-| **Debugging** | Excellent (LangSmith, time-travel replay) | Good (logging, task output inspection) |
-| **Production Readiness** | ✅ Enterprise-grade (fault tolerance, persistence) | 🟡 Maturing (better for prototypes) |
-| **Flexibility** | Unlimited (any topology) | Constrained (sequential or hierarchical) |
-| **Best For** | Complex, durable, high-stakes workflows | Quick team-based workflow prototyping |
-
-## The Decision Framework
-
-```mermaid
-graph TD
-    Q1{Is this a production system?} -->|Yes| Q2{Do you need custom control flow?}
-    Q1 -->|No / Prototype| CrewAI[Use CrewAI]
-    Q2 -->|Yes: loops, branches, recovery| LangGraph[Use LangGraph]
-    Q2 -->|No: linear pipeline| CrewAI
-    
-    style LangGraph fill:#0F172A,color:#fff
-    style CrewAI fill:#38BDF8,color:#0F172A
-```
+### When LangGraph Shines:
+- ✅ Complex workflows with loops, branches, and conditionals
+- ✅ **Time-travel debugging:** Replay execution from any checkpoint
+- ✅ **Durable execution:** Resume from failures without restarting
+- ✅ Production systems where reliability > speed-of-development
 
 ---
+
+## 🟦 CrewAI: The Role-Based Team Approach
+
+**CrewAI** takes a completely different philosophy. Instead of graphs and nodes, you define **Agents** (with human-like roles) and **Tasks** (with descriptions). You assemble them into a **Crew**.
+
+### Core Concepts:
+
+| Concept | What It Is | Example |
+|:--|:--|:--|
+| **Agent** | A persona with a role, goal, and backstory | "Senior Data Analyst with 10 years of experience" |
+| **Task** | A specific job assigned to a specific agent | "Analyze Q1 sales data and identify trends" |
+| **Crew** | A team of agents working together | Analyst + Writer + Reviewer |
+| **Process** | The orchestration strategy | `sequential` (one by one) or `hierarchical` (manager delegates) |
+
+### Code Example:
+```python
+from crewai import Agent, Task, Crew
+
+# Define agents with roles
+researcher = Agent(
+    role="Senior Research Analyst",
+    goal="Find the latest and most relevant information on the given topic",
+    backstory="You're a 15-year veteran researcher known for thorough analysis.",
+    tools=[search_tool, web_scraper]
+)
+
+writer = Agent(
+    role="Technical Writer",
+    goal="Write clear, engaging technical articles",
+    backstory="You've written for O'Reilly and Manning publications.",
+    tools=[create_document]
+)
+
+# Define tasks
+research_task = Task(
+    description="Research the topic of AI Agents in production for 2026",
+    agent=researcher,
+    expected_output="A comprehensive research brief with key findings"
+)
+
+write_task = Task(
+    description="Write a 2000-word article based on the research",
+    agent=writer,
+    expected_output="A polished article ready for publication"
+)
+
+# Assemble the crew
+crew = Crew(agents=[researcher, writer], tasks=[research_task, write_task])
+result = crew.kickoff()
+```
+
+### When CrewAI Shines:
+- ✅ **Rapid prototyping:** Go from idea to working demo in 30 minutes
+- ✅ Natural "team" analogy makes it intuitive for non-engineers
+- ✅ Quick exploration of whether a multi-agent approach works
+- ✅ Non-critical applications where perfect reliability isn't required
+
+---
+
+## 📊 Head-to-Head Comparison
+
+| Feature | 🔷 LangGraph | 🟦 CrewAI |
+|:--|:--|:--|
+| **Mental model** | State machine / directed graph | Human team with roles |
+| **Control level** | 🔧 Very fine-grained (node/edge) | 🎯 High-level (role/task) |
+| **Learning curve** | Steeper (graph theory concepts) | Gentler (team analogy) |
+| **State management** | Explicit, typed, checkpointed | Implicit, managed by framework |
+| **Error recovery** | ✅ Excellent (resume from checkpoint) | ⚠️ Basic (retry whole task) |
+| **Debugging** | ✅ Time-travel replay via LangSmith | ⚠️ Logging and task output inspection |
+| **Flexibility** | Unlimited topologies | Sequential or hierarchical only |
+| **Production-ready** | ✅ Enterprise-grade | ⚠️ Maturing (better for prototypes) |
+| **Time to prototype** | Hours to days | Minutes to hours |
+
+---
+
+## 🧭 The Decision Guide
+
+```
+START HERE:
+  │
+  ├── "Is this a production system with real users?"
+  │     ├── YES → "Do you need custom control flow (loops, branches)?"
+  │     │     ├── YES → 🔷 Use LangGraph
+  │     │     └── NO  → "Is it a simple linear pipeline?"
+  │     │           ├── YES → 🟦 CrewAI (sequential process)
+  │     │           └── NO  → 🔷 LangGraph (safer for edge cases)
+  │     │
+  │     └── NO → "Are you prototyping or exploring?"
+  │           └── YES → 🟦 Use CrewAI (fastest to validate ideas)
+```
 
 > [!TIP]
-> **The Practical Advice**  
-> Start every new project with **CrewAI** to validate the idea in 2 hours. Once you've proven the concept works, migrate to **LangGraph** for production deployment, where you'll need checkpointing, human-in-the-loop gates, and enterprise observability.
+> **The practical advice:** Start every new project with **CrewAI** to validate the idea in 2 hours. Once proven, migrate to **LangGraph** for production — where you need checkpointing, HITL gates, and enterprise observability.
 
 ---
-*Navigation: [← Previous: Multi-Agent](05-multi-agent.md) | [📑 Table of Contents](README.md) | [Next: Production Guardrails →](07-production.md)*
+
+<div align="center">
+
+| Navigation | |
+|:--|:--|
+| ⬅️ **Previous** | [Part 5: Multi-Agent](05-multi-agent.md) |
+| 📑 **Table of Contents** | [Agentic AI Masterclass Home](README.md) |
+| ➡️ **Next** | [Part 7: Production Guardrails →](07-production.md) |
+
+</div>
+
+---
+<div align="center">
+<sub>Part of the <a href="../README.md">AI Engineering Wiki</a> · Created by Youssef Ashraf · 2026</sub>
+</div>
